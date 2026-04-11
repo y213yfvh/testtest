@@ -16,9 +16,6 @@ void countChar(char* fileName,int weight[]){//weight[256]!!!
 	}
 	fclose(fp);
 }
-void Decode(char* rFileName,char* wFileName){
-	
-}
 //write
 inline void bitwrite(FILE* fl,char u8[]){//char u8[8]!!!
 	unsigned char ch=0;
