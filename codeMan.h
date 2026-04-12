@@ -15,7 +15,7 @@ struct vcode{
 };
 typedef struct tree tree;
 typedef struct vcode vcode;
-tree* buildTree(int weight[]){//weight[]´óĞ¡±ØĞëÊÇ256£¡£¡£¡
+tree* buildTree(int weight[]){//weight[]å¤§å°å¿…é¡»æ˜¯256ï¼ï¼ï¼
 	tree* Forest[256]={0};
 	int forestSize=0;
 	for(int i=0;i<256;i++){
@@ -87,7 +87,7 @@ void freeTree(tree* root){
 		free(root);
 	}
 }
-void RETcode(int weight[],char* code[]){//code[]¡¢weight[]´óĞ¡±ØĞëÊÇ256£¡£¡£¡
+void RETcode(int weight[],char* code[]){//code[]ã€weight[]å¤§å°å¿…é¡»æ˜¯256ï¼ï¼ï¼
 	tree* huffmanTree=buildTree(weight);
 	vcode vco;
 	vco.size=0;
@@ -98,5 +98,11 @@ void RETcode(int weight[],char* code[]){//code[]¡¢weight[]´óĞ¡±ØĞëÊÇ256£¡£¡£¡
 	codeTree(&vco,huffmanTree,s);
 	memcpy(code,vco.code,256*sizeof(char*));
 	freeTree(huffmanTree);
+}
+void freeCode(char* code[]){//code[256]!!!
+	for(int i=0;i<256;i++){
+		free(code[i]);
+		code[i]=NULL;
+	}
 }
 #endif
