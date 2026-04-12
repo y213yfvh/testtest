@@ -3,10 +3,10 @@
 #include<windows.h>
 #include<string.h>
 #include<direct.h>
-#include"code.h"
+#include"folderCode.h"
 int main(){
-	int weight[256]={0};
-	/*char s[120];
+	/*int weight[256]={0};
+	char s[120];
 	scanf("%s",s);
 	countChar(s,weight);
 	char* code[256]={0};
@@ -18,8 +18,8 @@ int main(){
 	writeFile("out.huf",code,s,weight);*/
 	char path[MAX_PATH];
 	char cmd[100];
-	char in[MAX_PATH+100];
-	char arg[MAX_PATH];
+	char in[MAX_PATH*2+100];
+	char arg[MAX_PATH*2];
 	if (_getcwd(path, MAX_PATH)==NULL){
 		puts("获取当前目录失败");
 		return -1;
@@ -44,9 +44,6 @@ int main(){
 		}
 		if(_stricmp(cmd,"cd")==0){
 			if(n<2)continue;
-			if(strlen(arg)==0){
-				continue;
-			}
 			if(SetCurrentDirectoryA(arg)){//设置当前工作目录
 				if(_getcwd(path,MAX_PATH)==NULL){
 					puts("无法获取当前目录");
@@ -61,8 +58,22 @@ int main(){
 					printf("原因：访问被拒绝。\n");
 				}
 			}
-		}else if(_stricmp(cmd,"")){
-			
+		}else if(_stricmp(cmd,"huff")==0){
+			if(n<2)continue;
+			char path1[MAX_PATH];
+			char path2[MAX_PATH];
+			int nn=sscanf(arg,"%s %s",path1,path2);
+			int weight[256]={0};
+			char* code[256]={0};
+			countChar(path1,weight);
+			RETcode(weight,code);
+			if(nn==1){
+				puts("未输入输出路径，默认在本路径输出out.huf");
+				codeFile("out.huf",path1,code,weight);
+			}else{
+				printf("输出位置：%s\n",path2);
+				codeFile(path2,path1,code,weight);
+			}
 		}
 	}
 }
