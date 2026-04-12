@@ -2,12 +2,12 @@
 #include"codeMan.h"
 #ifndef CODE_H
 #define CODE_H
-//read txt
+//read
 void countChar(char* fileName,int weight[]){//weight[256]!!!
 	FILE* fp;
 	fp=fopen(fileName,"rb");
 	if(fp==NULL){
-		printf("打开目标文件错误");
+		printf("打开目标文件错误\n");
 		return;
 	}
 	int t;
@@ -17,12 +17,15 @@ void countChar(char* fileName,int weight[]){//weight[256]!!!
 	fclose(fp);
 }
 //write
-inline void bitwrite(FILE* fl,char u8[]){//char u8[8]!!!
+void bitwrite(FILE* fl,char u8[]){//char u8[8]!!!
 	unsigned char ch=0;
 	for(int i=0;i<8;i++){
 		ch=(ch<<1)|(u8[i]-'0');
 	}
-	fwrite(&ch,sizeof(char),1,fl);
+	if(fwrite(&ch,sizeof(char),1,fl)!=1){
+		printf("写入错误\n");
+		return;
+	}
 }
 struct strque{
 	char s[514];
@@ -47,39 +50,40 @@ inline void pushStrque(strque* sq,char s[],short slen){
 	}
 	sq->size+=slen;
 }
-long long writeFile(char* wFileName,char* code[],char* rFileName,int weight[]){//weight[256],code[256]!!!
-	FILE* wfp;
-	FILE* rfp;
-	wfp=fopen(wFileName,"ab");
-	if(wfp==NULL){
-		printf("无法打开编码文件");
-		return -1;
-	}
-	rfp=fopen(rFileName,"rb");
-	if(rfp==NULL){
-		fclose(wfp);
-		printf("无法打开原文件");
-		return -1;
-	}
+long long writeFile(FILE* wfp,char* code[],FILE* rfp,int weight[]){//weight[256],code[256]!!!
 	short cha=0;
 	for(int i=0;i<256;i++){
 		if(weight[i]){
 			cha++;
 		}
 	}
-	fwrite(&cha,sizeof(short),1,wfp);
+	if(fwrite(&cha,sizeof(short),1,wfp)!=1){
+		printf("写入错误\n");
+		return -1;
+	}
 	for(int i=0;i<256;i++){
 		if(weight[i]){
 			unsigned char ii=i;
-			fwrite(&ii,sizeof(unsigned char),1,wfp);
-			fwrite(&weight[i],sizeof(int),1,wfp);
+			if(fwrite(&ii,sizeof(unsigned char),1,wfp)!=1){
+				printf("写入错误\n");
+				return -1;
+			}
+			if(fwrite(&weight[i],sizeof(int),1,wfp)!=1){
+				printf("写入错误\n");
+				return -1;
+			}
 		}
 	}
-	fseek(rfp,0,SEEK_END);
-	long long fllen = ftell(rfp);
-	fwrite(&fllen,sizeof(fllen),1,wfp);
-	rewind(rfp);
 	int t;
+	long long fllen=0;
+	while((t=fgetc(rfp))!=EOF){
+		fllen+=strlen(code[t]);
+	}
+	if(fwrite(&fllen,sizeof(fllen),1,wfp)!=1){
+		printf("写入错误\n");
+		return -1;
+	}
+	rewind(rfp);
 	strque buffer;
 	clearStrque(&buffer);
 	char u8[8];
@@ -99,8 +103,6 @@ long long writeFile(char* wFileName,char* code[],char* rFileName,int weight[]){/
 		}
 		bitwrite(wfp,u8);
 	}
-	fclose(wfp);
-	fclose(rfp);
 	return fllen;
 }
 #endif
