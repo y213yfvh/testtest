@@ -63,16 +63,12 @@ int main(){
 			char path1[MAX_PATH];
 			char path2[MAX_PATH];
 			int nn=sscanf(arg,"%s %s",path1,path2);
-			int weight[256]={0};
-			char* code[256]={0};
-			countChar(path1,weight);
-			RETcode(weight,code);
 			if(nn==1){
-				puts("未输入输出路径，默认在本路径输出out.huf");
-				codeFile("out.huf",path1,code,weight);
+				puts("未输入输出路径，默认在本路径下输出out.huf");
+				codeFile("out.huf",path1);
 			}else{
 				printf("输出位置：%s\n",path2);
-				codeFile(path2,path1,code,weight);
+				codeFile(path2,path1);
 			}
 		}
 	}
