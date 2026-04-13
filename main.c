@@ -4,6 +4,7 @@
 #include<string.h>
 #include<direct.h>
 #include"folderCode.h"
+#include"AIDecode.h"
 int main(){
 	/*int weight[256]={0};
 	char s[120];
@@ -70,6 +71,18 @@ int main(){
 				printf("输出位置：%s\n",path2);
 				codeFile(path2,path1);
 			}
+		}else if(_stricmp(cmd,"decode")==0){
+			if(n<2)continue;
+				char path1[MAX_PATH];
+				char path2[MAX_PATH];
+				int nn=sscanf(arg,"%s %s",path1,path2);
+				if(nn==1){
+					puts("未输入输出路径，默认在本路径下输出");
+					decodeFile(path1,".");
+				}else{
+					printf("输出位置：%s\n",path2);
+					decodeFile(path1,path2);
+				}
 		}
 	}
 }
