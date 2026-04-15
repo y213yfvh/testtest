@@ -19,8 +19,9 @@ int main(){
 	writeFile("out.huf",code,s,weight);*/
 	char path[MAX_PATH];
 	char cmd[100];
-	char in[MAX_PATH*2+100];
-	char arg[MAX_PATH*2];
+	#define CMDLINE_MAX 4096
+	char in[CMDLINE_MAX+100];
+	char arg[CMDLINE_MAX];
 	if (_getcwd(path, MAX_PATH)==NULL){
 		puts("获取当前目录失败");
 		return -1;
@@ -36,7 +37,7 @@ int main(){
 			p++;
 		}
 		if(*p=='\0')continue;//写的时候漏了个=，导致总是输出原目录
-		int n=sscanf(p,"%99s %255[^\n]",cmd,arg);
+		int n=sscanf(p,"%99s %4095[^\n]",cmd,arg);
 		if(n<1){//[^\n]读取直到遇到\n
 			continue;
 		}
@@ -66,23 +67,78 @@ int main(){
 			int nn=sscanf(arg,"%s %s",path1,path2);
 			if(nn==1){
 				puts("未输入输出路径，默认在本路径下输出out.huf");
+				FILE* f=fopen("out.huf","wb");
+				if(f){
+					fclose(f);
+				}else{
+					printf("错误，无法创建输出文件\n");
+					continue;
+				}
 				codeFile("out.huf",path1);
 			}else{
 				printf("输出位置：%s\n",path2);
+				FILE* f=fopen(path2,"wb");
+				if(f){
+					fclose(f);
+				}else{
+					printf("错误，无法创建输出文件\n");
+					continue;
+				}
 				codeFile(path2,path1);
 			}
 		}else if(_stricmp(cmd,"decode")==0){
 			if(n<2)continue;
-				char path1[MAX_PATH];
-				char path2[MAX_PATH];
-				int nn=sscanf(arg,"%s %s",path1,path2);
-				if(nn==1){
-					puts("未输入输出路径，默认在本路径下输出");
-					decodeFile(path1,".");
-				}else{
-					printf("输出位置：%s\n",path2);
-					decodeFile(path1,path2);
+			char path1[MAX_PATH];
+			char path2[MAX_PATH];
+			int nn=sscanf(arg,"%s %s",path1,path2);
+			if(nn==1){
+				puts("未输入输出路径，默认在本路径下输出");
+				decodeFile(path1,".");
+			}else{
+				printf("输出位置：%s\n",path2);
+				decodeFile(path1,path2);
+			}
+		}else if(_stricmp(cmd,"pack")==0){
+			char outfile[MAX_PATH];
+			char remaining[CMDLINE_MAX];
+			if(sscanf(arg,"%s %[^\n]",outfile,remaining)<1){
+				printf("错误，无法解析输出文件名\n");
+				continue;
+			}
+			FILE* f=fopen(outfile,"wb");
+			if(f){
+				fclose(f);
+			}else{
+				printf("错误，无法创建输出文件\n");
+				continue;
+			}
+			char* token=strtok(remaining,";");
+			int success=0,fail=0;
+			while(token!=NULL){
+				while(*token==' '||*token=='\t')token++;
+				char* end=token+strlen(token)-1;
+				while(end>token&&(*end==' '||*end=='\t'))end--;
+				1[end]='\0';//整活
+				if(strlen(token)==0){
+					token=strtok(NULL,";");
+					continue;
 				}
+				DWORD attrs=GetFileAttributesA(token);
+				if(attrs==INVALID_FILE_ATTRIBUTES){
+					printf("警告：路径不存在，跳过：%s\n",token);
+					fail++;
+				}else{
+					printf("压缩：%s\n",token);
+					int ret=codeFile(outfile,token);
+					if(ret==0)success++;
+					else{
+						printf("压缩失败：%s\n",token);
+						fail++;
+					}
+				}
+				token=strtok(NULL,";");
+			}
+			printf("打包完成，成功%d个，失败%d个\n",success,fail);
 		}
 	}
 }
