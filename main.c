@@ -27,6 +27,8 @@ int main(){
 		puts("获取当前目录失败");
 		return -1;
 	}
+	printf("输入?获取指令大全。\n");
+	printf("注意是半角的?。\n");
 	while(1){
 		printf("%s> ",path);
 		if(fgets(in,sizeof(in),stdin)==NULL){
@@ -220,6 +222,27 @@ int main(){
 				token=strtok(NULL,";");
 			}
 			printf("混合打包完成，成功%d个，失败%d个\n",success,fail);
+		}else if(_stricmp(cmd,"?")==0){
+			printf("cd <目录名>                      切换工作目录\n");
+			puts("");
+			printf("exit或quit                       退出程序\n");
+			puts("");
+			printf("huff <文件名>                    对该文件或文件夹进行基于哈夫曼编码压缩\n");
+			puts("");
+			printf("huff <文件名> <文件名2>          输出文件位于文件名2，否则是本路径的out.huf\n");
+			puts("");
+			printf("decode <文件名> <路径名2(可选)>  对该文件进行哈夫曼编码解压，输出到路径名2\n");
+			puts("");
+			printf("lz <文件名> <路径名2(可选)>      对该文件进行LZ77+哈夫曼混合压缩\n");
+			puts("");
+			printf("lzdecode <文件名> <路径名2(可选)>对该文件进行LZ77+哈夫曼混合解压缩\n");
+			puts("");
+			printf("pack <输出文件名> <文件名>;<文件名>;...\n");
+			printf("对多个文件使用哈夫曼编码进行打包压缩，文件名用分号隔开，文件名不能有分号\n");
+			puts("");
+			printf("lzpack <输出文件名> <文件名>;<文件名>;...\n");
+			printf("对多个文件使用LZ77+哈夫曼编码进行打包压缩，文件名用分号隔开，文件名不能有分号\n");
+			puts("");
 		}
 	}
 }
