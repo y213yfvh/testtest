@@ -1,12 +1,14 @@
+#ifndef CODEMAN_H
+#define CODEMAN_H
+
 #include<stdlib.h>
 #include<string.h>
 #include<limits.h>
-#ifndef CODEMAN_H
-#define CODEMAN_H
+
 struct tree{
 	struct tree* left;
 	char ch;
-	int weight;
+	unsigned int weight;
 	struct tree* right;
 };
 struct vcode{
@@ -15,7 +17,7 @@ struct vcode{
 };
 typedef struct tree tree;
 typedef struct vcode vcode;
-tree* buildTree(int weight[]){//weight[]大小必须是256！！！
+tree* buildTree(unsigned int weight[]){//weight[]大小必须是256！！！
 	tree* Forest[256]={0};
 	int forestSize=0;
 	for(int i=0;i<256;i++){
@@ -33,9 +35,9 @@ tree* buildTree(int weight[]){//weight[]大小必须是256！！！
 		return NULL;
 	}
 	int min1,min2;
-	int minw1,minw2;
+	unsigned int minw1,minw2;
 	while(forestSize>1){
-		minw1=INT_MAX,minw2=INT_MAX;
+		minw1=UINT_MAX,minw2=UINT_MAX;
 		for(int i=0;i<256;i++){
 			if(Forest[i]&&Forest[i]->weight<minw1){
 				min1=i;
@@ -87,7 +89,7 @@ void freeTree(tree* root){
 		free(root);
 	}
 }
-void RETcode(int weight[],char* code[]){//code[]、weight[]大小必须是256！！！
+void RETcode(unsigned int weight[],char* code[]){//code[]、weight[]大小必须是256！！！
 	tree* huffmanTree=buildTree(weight);
 	vcode vco;
 	vco.size=0;
