@@ -15,6 +15,10 @@
 #define MAX_CHAIN 256
 #define LA_SIZE (MAX_MATCH+3)
 
+// -------------------- 新增：输入/输出缓冲区大小 --------------------
+#define IN_BUF_SIZE 65536
+#define OUT_BUF_SIZE 65536
+
 struct window{
     unsigned char win[WSIZE];
     unsigned int begin;
@@ -30,6 +34,10 @@ struct LZ77State{
     unsigned char la[LA_SIZE];
     int la_len;
     unsigned int curPos;
+    // -------------------- 新增：输入块缓存 --------------------
+    unsigned char in_buf[IN_BUF_SIZE];
+    int in_buf_len;
+    int in_buf_pos;
 };
 typedef struct LZ77State LZ77State;
 
@@ -53,9 +61,20 @@ static inline unsigned int hash3(const unsigned char* a){
     return h&(HSIZE-1);
 }
 
+// -------------------- 新增：从缓存读取一个字节 --------------------
+static int get_cached_byte(LZ77State* st) {
+    if (st->in_buf_pos >= st->in_buf_len) {
+        st->in_buf_len = fread(st->in_buf, 1, IN_BUF_SIZE, st->rfp);
+        st->in_buf_pos = 0;
+        if (st->in_buf_len == 0) return EOF;
+    }
+    return st->in_buf[st->in_buf_pos++];
+}
+
+// 修改 fill_la：使用缓存读取
 static void fill_la(LZ77State* st,int need){
     while(st->la_len<need){
-        int c=fgetc(st->rfp);
+        int c=get_cached_byte(st);
         if(c==EOF)break;
         st->la[st->la_len++]=(unsigned char)c;
     }
@@ -109,6 +128,37 @@ static unsigned int find_match(LZ77State* st,unsigned int* dist){
     return 0;
 }
 
+// -------------------- 新增：输出缓冲区结构及辅助函数 --------------------
+typedef struct {
+    unsigned char buf[OUT_BUF_SIZE];
+    int pos;
+    FILE* fp;
+} OutBuffer;
+
+static void outbuf_flush(OutBuffer* ob) {
+    if (ob->pos > 0) {
+        fwrite(ob->buf, 1, ob->pos, ob->fp);
+        ob->pos = 0;
+    }
+}
+
+static void outbuf_write(OutBuffer* ob, const void* data, int size) {
+    const unsigned char* p = (const unsigned char*)data;
+    int remaining = size;
+    while (remaining > 0) {
+        int space = OUT_BUF_SIZE - ob->pos;
+        if (space == 0) {
+            outbuf_flush(ob);
+            space = OUT_BUF_SIZE;
+        }
+        int chunk = (remaining < space) ? remaining : space;
+        memcpy(ob->buf + ob->pos, p, chunk);
+        ob->pos += chunk;
+        p += chunk;
+        remaining -= chunk;
+    }
+}
+
 // LZ77 压缩单个文件，生成 .mylz
 int LZ77(char* rFilePath){
     LZ77State st;
@@ -131,6 +181,9 @@ int LZ77(char* rFilePath){
     memset(st.prev,0,sizeof(st.prev));
     st.la_len=0;
     st.curPos=0;
+    // -------------------- 新增：初始化输入缓存 --------------------
+    st.in_buf_len = 0;
+    st.in_buf_pos = 0;
 
     fill_la(&st,MIN_MATCH);
     if(st.la_len<MIN_MATCH){
@@ -143,41 +196,40 @@ int LZ77(char* rFilePath){
         fclose(st.wfp);
         return 0;
     }
+
+    // -------------------- 新增：输出缓冲区 --------------------
+    OutBuffer out;
+    out.pos = 0;
+    out.fp = st.wfp;
+
     while(st.la_len>0){
         unsigned int match_dist=0;
         unsigned int match_len=find_match(&st,&match_dist);
         if(match_len >= MIN_MATCH){
-		    // 1. 限制长度防止4位字段溢出
 		    if(match_len > MIN_MATCH + 15)
 		        match_len = MIN_MATCH + 15;
-		    // 2. 限制长度不超过前瞻缓冲区剩余字节数（防止越界）
 		    if(match_len > st.la_len)
 		        match_len = st.la_len;
 		
 		    unsigned char flag = 1;
-		    fwrite(&flag, 1, 1, st.wfp);
+		    outbuf_write(&out, &flag, 1);
 		    unsigned int off = match_dist - 1;
 		    unsigned int len_code = match_len - MIN_MATCH;
-		    // 原代码：
-			// unsigned short packed = (off & 0xFFF) | ((len_code & 0xF) << 12);
-			// fwrite(&packed, 2, 1, st.wfp);
-			
-			// 改为：
-			unsigned char buf[3];
-			buf[0] = off & 0xFF;                      // 距离低8位
-			buf[1] = ((off >> 8) & 0x7F) |            // 距离高7位
-			         ((len_code & 0x01) << 7);        // 长度最低1位
-			buf[2] = (len_code >> 1) & 0x07;          // 长度高3位（len_code ≤ 15）
-			fwrite(buf, 3, 1, st.wfp);
+		    unsigned char buf[3];
+			buf[0] = off & 0xFF;
+			buf[1] = ((off >> 8) & 0x7F) | ((len_code & 0x01) << 7);
+			buf[2] = (len_code >> 1) & 0x07;
+			outbuf_write(&out, buf, 3);
 		    consume(&st, match_len);
 		}else{
             unsigned char flag=0;
-            fwrite(&flag,1,1,st.wfp);
-            fwrite(&st.la[0],1,1,st.wfp);
+            outbuf_write(&out, &flag, 1);
+            outbuf_write(&out, &st.la[0], 1);
             consume(&st,1);
         }
         fill_la(&st, LA_SIZE);
     }
+    outbuf_flush(&out);
     fclose(st.rfp);
     fclose(st.wfp);
     return 0;
@@ -305,13 +357,19 @@ int codeFile_LZ(char* wFilePath, char* rFilePath, bool clear){
     return ret;
 }
 
-// ========== LZ77 解压（新增） ==========
+// ========== LZ77 解压（增加输出缓冲） ==========
 int LZ77Decompress(FILE* in, const char* outPath) {
     FILE* out = fopen(outPath, "wb");
     if (!out) {
         printf("LZ77解压：无法创建输出文件 %s\n", outPath);
         return -1;
     }
+
+    // -------------------- 新增：输出缓冲区 --------------------
+    unsigned char out_buf[OUT_BUF_SIZE];
+    int out_pos = 0;
+    #define FLUSH_OUT() do { if (out_pos > 0) { fwrite(out_buf, 1, out_pos, out); out_pos = 0; } } while(0)
+    #define WRITE_BYTE(b) do { out_buf[out_pos++] = (b); if (out_pos >= OUT_BUF_SIZE) FLUSH_OUT(); } while(0)
 
     unsigned char window[WSIZE] = {0};
     unsigned int curPos = 0;
@@ -321,34 +379,27 @@ int LZ77Decompress(FILE* in, const char* outPath) {
         if (flag == 0) {
             unsigned char ch;
             if (fread(&ch, 1, 1, in) != 1) break;
-            fputc(ch, out);
+            WRITE_BYTE(ch);
             window[curPos & (WSIZE - 1)] = ch;
             curPos++;
         } else if (flag == 1) {
-            // 原代码：
-			// unsigned short packed;
-			// if (fread(&packed, 2, 1, in) != 1) break;
-			// unsigned int dist = (packed & 0xFFF) + 1;
-			// unsigned int len = (packed >> 12) + MIN_MATCH;
-			
-			// 改为：
-			unsigned char buf[3];
-			if (fread(buf, 3, 1, in) != 1) break;
-			
-			unsigned int dist = (buf[0] | ((buf[1] & 0x7F) << 8)) + 1;
-			unsigned int len = ((buf[1] >> 7) | ((buf[2] & 0x07) << 1)) + MIN_MATCH;
+            unsigned char buf[3];
+            if (fread(buf, 3, 1, in) != 1) break;
+            unsigned int dist = (buf[0] | ((buf[1] & 0x7F) << 8)) + 1;
+            unsigned int len = ((buf[1] >> 7) | ((buf[2] & 0x07) << 1)) + MIN_MATCH;
             for (unsigned int i = 0; i < len; i++) {
                 unsigned char ch = window[(curPos - dist + i) & (WSIZE - 1)];
-                fputc(ch, out);
+                WRITE_BYTE(ch);
                 window[(curPos + i) & (WSIZE - 1)] = ch;
             }
             curPos += len;
         } else {
+            FLUSH_OUT();
             fclose(out);
             return -1;
         }
     }
-
+    FLUSH_OUT();
     fclose(out);
     return 0;
 }
