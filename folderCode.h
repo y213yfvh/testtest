@@ -1,8 +1,10 @@
 #ifndef FOLDERCODE_H
 #define FOLDERCODE_H
+
 #include<windows.h>
 #include<stdio.h>
 #include"code.h"
+
 int normalCode(FILE* wfp,char* rFilePath){
 	FILE* rfp;
 	if(wfp==NULL){
@@ -29,7 +31,7 @@ int normalCode(FILE* wfp,char* rFilePath){
 		return -1;
 	}
 	char* code[256]={0};
-	int weight[256]={0};
+	unsigned int weight[256]={0};
 	countChar(rFilePath,weight);
 	RETcode(weight,code);
 	writeFile(wfp,code,rfp,weight);
