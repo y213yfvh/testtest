@@ -1,10 +1,6 @@
-
-// decode.c
 #ifndef AIDECODE_H
 #define AIDECODE_H
-// decode.c
-// 与你的编码器完全匹配的解码器（无 overwrite 参数，始终覆盖）
-#define _CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -64,7 +60,7 @@ static int decodeOneFile(FILE *in, const char *outputPath) {
     // 读取 cha (short)
     short cha;
     if (fread(&cha, sizeof(short), 1, in) != 1) return -1;
-    int weight[256] = {0};
+    unsigned int weight[256] = {0};
     for (int i = 0; i < cha; i++) {
         unsigned char ch;
         int w;
@@ -79,7 +75,6 @@ static int decodeOneFile(FILE *in, const char *outputPath) {
     // 使用与编码器完全相同的建树函数
     tree *root = buildTree(weight);
     if (!root) return -1;
-
     FILE *out = fopen(outputPath, "wb");
     if (!out) {
         freeTree(root);
@@ -183,7 +178,7 @@ static int decodeOneFile_Hybrid(FILE* in, const char* outputPath) {
     short cha;
     if (fread(&cha, sizeof(short), 1, in) != 1) return -1;
 
-    int weight[256] = {0};
+    unsigned int weight[256] = {0};
     for (int i = 0; i < cha; i++) {
         unsigned char ch;
         int w;
@@ -254,7 +249,6 @@ static int decodeOneFile_Hybrid(FILE* in, const char* outputPath) {
 	    // 解压失败，保留临时文件以便分析
 	    printf("[ERROR] LZ77 解压失败，临时文件保留: %s\n", tempPath);
 	    // remove(tempPath);  // 先不删除，方便查看数据
-	    free(lz77Data); // 前面已经 free 过了？注意：前面有 free(lz77Data)，这里再 free 会重复
 	    return -1;
 	}
 	remove(tempPath);
