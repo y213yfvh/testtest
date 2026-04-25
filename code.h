@@ -1,9 +1,11 @@
-#include<stdio.h>
-#include"codeMan.h"
 #ifndef CODE_H
 #define CODE_H
+
+#include<stdio.h>
+#include"codeMan.h"
+
 //read
-void countChar(char* fileName,int weight[]){//weight[256]!!!
+void countChar(char* fileName,unsigned int weight[]){//weight[256]!!!
 	FILE* fp;
 	fp=fopen(fileName,"rb");
 	if(fp==NULL){
@@ -50,7 +52,7 @@ inline void pushStrque(strque* sq,char s[],short slen){
 	}
 	sq->size+=slen;
 }
-long long writeFile(FILE* wfp,char* code[],FILE* rfp,int weight[]){//weight[256],code[256]!!!
+long long writeFile(FILE* wfp,char* code[],FILE* rfp,unsigned int weight[]){//weight[256],code[256]!!!
 	short cha=0;
 	for(int i=0;i<256;i++){
 		if(weight[i]){
@@ -68,7 +70,7 @@ long long writeFile(FILE* wfp,char* code[],FILE* rfp,int weight[]){//weight[256]
 				printf("写入错误\n");
 				return -1;
 			}
-			if(fwrite(&weight[i],sizeof(int),1,wfp)!=1){
+			if(fwrite(&weight[i],sizeof(unsigned int),1,wfp)!=1){
 				printf("写入错误\n");
 				return -1;
 			}
