@@ -1,4 +1,4 @@
- #include<stdio.h>
+#include<stdio.h>
 #include<stdlib.h>
 #include<windows.h>
 #include<string.h>
@@ -29,6 +29,7 @@ int main(){
 	}
 	printf("输入?获取指令大全。\n");
 	printf("注意是半角的?。\n");
+	printf("注意输入文件名要完整，带后缀。\n");
 	while(1){
 		printf("%s> ",path);
 		if(fgets(in,sizeof(in),stdin)==NULL){
@@ -63,6 +64,24 @@ int main(){
 					printf("原因：访问被拒绝。\n");
 				}
 			}
+		}else if(_stricmp(cmd,"dir")==0){
+			char pathp[MAX_PATH];
+			snprintf(pathp,MAX_PATH,"%s\\*",path);
+			WIN32_FIND_DATA findData;
+			HANDLE hFind;
+			hFind=FindFirstFile(pathp,&findData);
+			if(hFind==INVALID_HANDLE_VALUE){
+				printf("无法访问当前目录\n");
+				continue;
+			}
+			do{
+				printf("%s",findData.cFileName);
+				if(findData.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY){
+					printf("(目录)");
+				}
+				puts("");
+			}while(FindNextFile(hFind,&findData));
+			FindClose(hFind);
 		}else if(_stricmp(cmd,"huff")==0){
 			if(n<2)continue;
 			char path1[MAX_PATH];
@@ -222,27 +241,24 @@ int main(){
 				token=strtok(NULL,";");
 			}
 			printf("混合打包完成，成功%d个，失败%d个\n",success,fail);
-		}else if(_stricmp(cmd,"?")==0){
-			printf("cd <目录名>                      切换工作目录\n");
-			puts("");
-			printf("exit或quit                       退出程序\n");
-			puts("");
-			printf("huff <文件名>                    对该文件或文件夹进行基于哈夫曼编码压缩\n");
-			puts("");
-			printf("huff <文件名> <文件名2>          输出文件位于文件名2，否则是本路径的out.huf\n");
-			puts("");
-			printf("decode <文件名> <路径名2(可选)>  对该文件进行哈夫曼编码解压，输出到路径名2\n");
-			puts("");
-			printf("lz <文件名> <路径名2(可选)>      对该文件进行LZ77+哈夫曼混合压缩\n");
-			puts("");
-			printf("lzdecode <文件名> <路径名2(可选)>对该文件进行LZ77+哈夫曼混合解压缩\n");
-			puts("");
-			printf("pack <输出文件名> <文件名>;<文件名>;...\n");
-			printf("对多个文件使用哈夫曼编码进行打包压缩，文件名用分号隔开，文件名不能有分号\n");
-			puts("");
-			printf("lzpack <输出文件名> <文件名>;<文件名>;...\n");
-			printf("对多个文件使用LZ77+哈夫曼编码进行打包压缩，文件名用分号隔开，文件名不能有分号\n");
-			puts("");
+		}else if(strcmp(cmd,"?")==0){
+		    printf("cd <目录>                      切换工作目录\n");
+		    printf("exit / quit                    退出程序\n");
+		    printf("dir                            列出当前目录内容，.是自身，..是上一级目录\n");
+		    printf("huff <源> [输出文件]           哈夫曼压缩文件/文件夹，默认 out.huf\n");
+		    printf("decode <压缩文件> [输出目录]   哈夫曼解压，默认当前目录\n");
+		    printf("lz <源> [输出文件]             LZ77+哈夫曼压缩，默认 out.dflar\n");
+		    printf("lzdecode <压缩文件> [输出目录] LZ77+哈夫曼解压，默认当前目录\n");
+		    printf("pack <输出> <源1;源2;...>      哈夫曼打包（分号分隔）\n");
+		    printf("lzpack <输出> <源1;源2;...>    LZ77+哈夫曼打包（分号分隔）\n");
+		    printf("\n注意:\n");
+		    printf("  - 压缩目录时自动递归处理子目录\n");
+		    printf("  - 解压时输出目录不存在会自动创建\n");
+		    printf("  - 打包时路径中不能包含分号\n");
+		    printf("\n示例:\n");
+		    printf("  huff doc.txt archive.huf\n");
+		    printf("  lzdecode out.dflar restored\n");
+		    printf("  pack bundle.huf C:\\Folder;file.txt\n");
 		}
 	}
 }
