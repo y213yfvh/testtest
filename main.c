@@ -145,17 +145,50 @@ int main(){
 					token=strtok(NULL,";");
 					continue;
 				}
-				DWORD attrs=GetFileAttributesA(token);
-				if(attrs==INVALID_FILE_ATTRIBUTES){
-					printf("警告：路径不存在，跳过：%s\n",token);
-					fail++;
-				}else{
-					printf("压缩：%s\n",token);
-					int ret=codeFile(outfile,token);
-					if(ret==0)success++;
-					else{
-						printf("压缩失败：%s\n",token);
+				if(strpbrk(token,"*?")){
+					WIN32_FIND_DATA findData;
+					HANDLE hFind;
+					hFind=FindFirstFile(token,&findData);
+					if(hFind==INVALID_HANDLE_VALUE){
+						printf("无法访问:%s\n",token);
 						fail++;
+						continue;
+					}
+					do{
+						if(strcmp(findData.cFileName,".")==0||strcmp(findData.cFileName,"..")==0)continue;
+						char fullpath[MAX_PATH];
+						char* last=strrchr(token,'\\');
+						if(last==NULL)last=strrchr(token,'/');
+						if(last!=NULL){
+							int dirlen=last-token;//神秘的指针减法
+							strncpy(fullpath,token,dirlen);
+							fullpath[dirlen]='\0';
+							snprintf(fullpath+dirlen,MAX_PATH-dirlen,"\\%s",findData.cFileName);
+						}else{
+							strcpy(fullpath,findData.cFileName);
+						}
+						printf("压缩：%s\n",fullpath);
+						int ret=codeFile(outfile,fullpath);
+						if(ret==0)success++;
+						else{
+							printf("压缩失败：%s\n",fullpath);
+							fail++;
+						}
+					}while(FindNextFile(hFind,&findData));
+					FindClose(hFind);
+				}else{
+					DWORD attrs=GetFileAttributesA(token);
+					if(attrs==INVALID_FILE_ATTRIBUTES){
+						printf("警告：路径不存在，跳过：%s\n",token);
+						fail++;
+					}else{
+						printf("压缩：%s\n",token);
+						int ret=codeFile(outfile,token);
+						if(ret==0)success++;
+						else{
+							printf("压缩失败：%s\n",token);
+							fail++;
+						}
 					}
 				}
 				token=strtok(NULL,";");
@@ -186,7 +219,7 @@ int main(){
 		        codeFile_LZ(path2, path1, 1);
 		    }
 		    // 新增：LZ77+哈夫曼混合解压
-		} else if (_stricmp(cmd, "lzdecode") == 0) {
+		}else if(_stricmp(cmd, "lzdecode") == 0) {
 		    if (n < 2) continue;
 		    char path1[MAX_PATH], path2[MAX_PATH];
 		    int nn = sscanf(arg, "%s %s", path1, path2);
@@ -213,34 +246,64 @@ int main(){
 			}
 			char* token=strtok(remaining,";");
 			int success=0,fail=0;
-			int first=1;  // 第一个成功项需清空文件，后续追加
 			while(token!=NULL){
 				while(*token==' '||*token=='\t')token++;
 				char* end=token+strlen(token)-1;
 				while(end>token&&(*end==' '||*end=='\t'))end--;
-				1[end]='\0';
+				1[end]='\0';//整活
 				if(strlen(token)==0){
 					token=strtok(NULL,";");
 					continue;
 				}
-				DWORD attrs=GetFileAttributesA(token);
-				if(attrs==INVALID_FILE_ATTRIBUTES){
-					printf("警告：路径不存在，跳过：%s\n",token);
-					fail++;
-				}else{
-					printf("混合压缩：%s\n",token);
-					int ret=codeFile_LZ(outfile,token,first);
-					if(ret==0){
-						success++;
-						first=0;  // 首次成功后改为追加模式
-					}else{
-						printf("混合压缩失败：%s\n",token);
+				if(strpbrk(token,"*?")){
+					WIN32_FIND_DATA findData;
+					HANDLE hFind;
+					hFind=FindFirstFile(token,&findData);
+					if(hFind==INVALID_HANDLE_VALUE){
+						printf("无法访问:%s\n",token);
 						fail++;
+						continue;
+					}
+					do{
+						if(strcmp(findData.cFileName,".")==0||strcmp(findData.cFileName,"..")==0)continue;
+						char fullpath[MAX_PATH];
+						char* last=strrchr(token,'\\');
+						if(last==NULL)last=strrchr(token,'/');//又没考虑这个，导致不能正常压缩，为什么要/\混用啊
+						if(last!=NULL){
+							int dirlen=last-token;//神秘的指针减法
+							strncpy(fullpath,token,dirlen);
+							fullpath[dirlen]='\0';
+							snprintf(fullpath+dirlen,MAX_PATH-dirlen,"\\%s",findData.cFileName);
+						}else{
+							strcpy(fullpath,findData.cFileName);
+						}
+						printf("压缩：%s\n",fullpath);
+						int ret=codeFile_LZ(outfile,fullpath,0);
+						if(ret==0)success++;
+						else{
+							printf("压缩失败：%s\n",fullpath);
+							fail++;
+						}
+					}while(FindNextFile(hFind,&findData));
+					FindClose(hFind);
+				}else{
+					DWORD attrs=GetFileAttributesA(token);
+					if(attrs==INVALID_FILE_ATTRIBUTES){
+						printf("警告：路径不存在，跳过：%s\n",token);
+						fail++;
+					}else{
+						printf("压缩：%s\n",token);
+						int ret=codeFile_LZ(outfile,token,0);
+						if(ret==0)success++;
+						else{
+							printf("压缩失败：%s\n",token);
+							fail++;
+						}
 					}
 				}
 				token=strtok(NULL,";");
 			}
-			printf("混合打包完成，成功%d个，失败%d个\n",success,fail);
+			printf("打包完成，成功%d个，失败%d个\n",success,fail);
 		}else if(strcmp(cmd,"?")==0){
 		    printf("cd <目录>                      切换工作目录\n");
 		    printf("exit / quit                    退出程序\n");
@@ -255,6 +318,7 @@ int main(){
 		    printf("  - 压缩目录时自动递归处理子目录\n");
 		    printf("  - 解压时输出目录不存在会自动创建\n");
 		    printf("  - 打包时路径中不能包含分号\n");
+		    printf("  - 打包时可以使用通配符\n");
 		    printf("\n示例:\n");
 		    printf("  huff doc.txt archive.huf\n");
 		    printf("  lzdecode out.dflar restored\n");
