@@ -64,6 +64,20 @@ int main(){
 					printf("原因：访问被拒绝。\n");
 				}
 			}
+		}else if(_stricmp(cmd,"cls")==0){
+			HANDLE hConsole=GetStdHandle(STD_OUTPUT_HANDLE);
+			if(hConsole==INVALID_HANDLE_VALUE){
+				continue;
+			}
+			CONSOLE_SCREEN_BUFFER_INFO CSBI;
+			if(!GetConsoleScreenBufferInfo(hConsole,&CSBI)){
+				continue;
+			}
+			DWORD cells=CSBI.dwSize.X*CSBI.dwSize.Y;//unsigned int
+			COORD startCoord={0,0};
+			DWORD written;
+			FillConsoleOutputCharacter(hConsole,' ',cells,startCoord,&written);
+			SetConsoleCursorPosition(hConsole,startCoord);
 		}else if(_stricmp(cmd,"dir")==0){
 			char pathp[MAX_PATH];
 			snprintf(pathp,MAX_PATH,"%s\\*",path);
