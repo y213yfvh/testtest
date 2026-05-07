@@ -321,6 +321,7 @@ int main(){
 		}else if(strcmp(cmd,"?")==0){
 		    printf("cd <目录>                      切换工作目录\n");
 		    printf("exit / quit                    退出程序\n");
+		    printf("cls                            清空屏幕");
 		    printf("dir                            列出当前目录内容，.是自身，..是上一级目录\n");
 		    printf("huff <源> [输出文件]           哈夫曼压缩文件/文件夹，默认 out.huf\n");
 		    printf("decode <压缩文件> [输出目录]   哈夫曼解压，默认当前目录\n");
@@ -337,6 +338,7 @@ int main(){
 		    printf("  huff doc.txt archive.huf\n");
 		    printf("  lzdecode out.dflar restored\n");
 		    printf("  pack bundle.huf C:\\Folder;file.txt\n");
+		    printf("\n");
 		}
 	}
 }
