@@ -9,7 +9,7 @@ static inline void fixPath(char* p){
     for(;*p;p++)if(*p=='/')*p='\\';
 }
  // 这是命令处理函数，太大了
-static int processCommand(const char*cmdline,char*path){
+static int processCommand(const char *cmdline,char *path){
     char cmd[100];
     char in[CMDLINE_MAX+100];
     char arg[CMDLINE_MAX];
