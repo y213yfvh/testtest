@@ -9,7 +9,7 @@ static inline void fixPath(char* p){
     for(;*p;p++)if(*p=='/')*p='\\';
 }
  // 这是命令处理函数，太大了
-static int processCommand(const char *cmdline,char *path){
+static int processCommand(const char*cmdline,char*path){
     char cmd[100];
     char in[CMDLINE_MAX+100];
     char arg[CMDLINE_MAX];
@@ -200,26 +200,22 @@ static int processCommand(const char *cmdline,char *path){
         return 0;
     }
     if(strcmp(cmd,"?")==0){
-        printf("cd <目录>                      切换工作目录\n");
-        printf("exit / quit                    退出程序\n");
-        printf("cls                            清空屏幕\n");
-        printf("dir                            列出当前目录内容，.是自身，..是上一级目录\n");
-        printf("huff <源> [输出文件]           哈夫曼压缩文件/文件夹，默认 out.huf\n");
-        printf("decode <压缩文件> [输出目录]   哈夫曼解压，默认当前目录\n");
-        printf("lz <源> [输出文件]             LZ77+哈夫曼压缩，默认 out.dflar\n");
-        printf("lzdecode <压缩文件> [输出目录] LZ77+哈夫曼解压，默认当前目录\n");
-        printf("pack <输出> <源1;源2;...>      哈夫曼打包（分号分隔）\n");
-        printf("lzpack <输出> <源1;源2;...>    LZ77+哈夫曼打包（分号分隔）\n");
-        printf("\n注意:\n");
-        printf("  - 压缩目录时自动递归处理子目录\n");
-        printf("  - 解压时输出目录不存在会自动创建\n");
-        printf("  - 打包时路径中不能包含分号\n");
-        printf("  - 打包时可以使用通配符\n");
-        printf("\n示例:\n");
-        printf("  huff doc.txt archive.huf\n");
-        printf("  lzdecode out.dflar restored\n");
-        printf("  pack bundle.huf C:\\Folder;file.txt\n");
-        printf("\n");
+		printf("cd <目录>                      切换工作目录\n");
+		printf("exit / quit                    退出程序\n");
+		printf("cls                            清空屏幕\n");
+		printf("dir                            列出当前目录内容\n");
+		printf("huff <源> [输出文件]           哈夫曼压缩（独立压缩每个文件）\n");
+		printf("decode <压缩文件> [输出目录]   哈夫曼解压\n");
+		printf("lz <源> [输出文件]             LZ77+哈夫曼压缩（独立压缩）\n");
+		printf("lzdecode <压缩文件> [输出目录] LZ77+哈夫曼解压\n");
+		printf("pack <输出> <源1;源2;...>      打包+哈夫曼压缩（推荐大量小文件）\n");
+		printf("lzpack <输出> <源1;源2;...>    打包+LZ77+哈夫曼压缩\n");
+		printf("unpack <压缩文件> [输出目录]   解包（对应pack）\n");
+		printf("lzunpack <压缩文件> [输出目录] 解包（对应lzpack）\n");
+		printf("\n注意: 打包命令先合并文件再压缩，压缩率高；支持通配符和分号分隔。\n");
+		printf("\n示例:\n");
+		printf("  pack out.huf C:\\Folder;*.txt\n");
+		printf("  lzpack out.dflar test.txt;docs\n");
         return 0;
     }
     printf("未知命令: %s\n",cmd);
