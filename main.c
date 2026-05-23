@@ -4,26 +4,29 @@
 #include<string.h>
 #include<direct.h>
 #include"pack.h"
+
 #define CMDLINE_MAX 4096
+
+//把/换成\方便使用windows API(有的不支持/)
 static inline void fixPath(char* p){
     for(;*p;p++)if(*p=='/')*p='\\';
 }
- // 这是命令处理函数，太大了
-static int processCommand(const char*cmdline,char*path){
-    char cmd[100];
-    char in[CMDLINE_MAX+100];
-    char arg[CMDLINE_MAX];
+//这是命令处理函数，太大了
+static int processCommand(const char* cmdline,char* path){
+    char cmd[100];//指令
+    char in[CMDLINE_MAX+100];//输入
+    char arg[CMDLINE_MAX];//参数
     strcpy(in,cmdline);
     in[strcspn(in,"\n")]='\0';
-    char*p=in;
-    while(*p==' '||*p=='\t')p++;
+    char* p=in;
+    while(*p==' '||*p=='\t')p++;//跳过空格和\t
     if(*p=='\0')return 0;
-    int n=sscanf(p,"%99s %4095[^\n]",cmd,arg);
-    if(n<1)return 0;
-    if(_stricmp(cmd,"exit")==0||_stricmp(cmd,"quit")==0){
+    int n=sscanf(p,"%99s %4095[^\n]",cmd,arg);//分离命令和参数，在命令行使用无效果
+    if(n<1)return 0;//没有命令
+    if(_stricmp(cmd,"exit")==0||_stricmp(cmd,"quit")==0){//退出
         return 1;
     }
-    if(_stricmp(cmd,"cd")==0){
+    if(_stricmp(cmd,"cd")==0){//切换目录
         if(n<2)return 0;
         if(SetCurrentDirectoryA(arg)){
             if(_getcwd(path,MAX_PATH)==NULL)puts("无法获取当前目录");
@@ -36,7 +39,7 @@ static int processCommand(const char*cmdline,char*path){
         }
         return 0;
     }
-    if(_stricmp(cmd,"cls")==0){
+    if(_stricmp(cmd,"cls")==0){//清空
         HANDLE hConsole=GetStdHandle(STD_OUTPUT_HANDLE);
         if(hConsole==INVALID_HANDLE_VALUE)return 0;
         CONSOLE_SCREEN_BUFFER_INFO CSBI;
@@ -48,7 +51,7 @@ static int processCommand(const char*cmdline,char*path){
         SetConsoleCursorPosition(hConsole,startCoord);
         return 0;
     }
-    if(_stricmp(cmd,"dir")==0){
+    if(_stricmp(cmd,"dir")==0){//列出当前目录
         char pathp[MAX_PATH];
         snprintf(pathp,MAX_PATH,"%s\\*",path);
         WIN32_FIND_DATA findData;
@@ -68,11 +71,12 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"huff")==0){
+		//普通Huffman压缩，支持压缩单个文件或目录，目录下每个文件一个Huffman树
         if(n<2)return 0;
         char path1[MAX_PATH];
         char path2[MAX_PATH];
         int nn=sscanf(arg,"%s %s",path1,path2);
-        if(nn==1){
+        if(nn==1){//参数没有path2，表示未输入输出路径
             fixPath(path1);
             puts("未输入输出路径，默认在本路径下输出out.huf");
             FILE*f=fopen("out.huf","wb");
@@ -83,7 +87,7 @@ static int processCommand(const char*cmdline,char*path){
             }
             codeFile("out.huf",path1);
         }
-        else{
+        else{//在指定输出文件输出
             fixPath(path1);
             fixPath(path2);
             printf("输出位置：%s\n",path2);
@@ -97,7 +101,7 @@ static int processCommand(const char*cmdline,char*path){
         }
         return 0;
     }
-    if(_stricmp(cmd,"decode")==0){
+    if(_stricmp(cmd,"decode")==0){//普通Huffman解码，对应上面的压缩
         if(n<2)return 0;
         char path1[MAX_PATH];
         char path2[MAX_PATH];
@@ -116,6 +120,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"pack")==0){
+		//打包压缩，把提供的所有要压缩的文件打包成一个文件再压缩
         char outFile[MAX_PATH],remaining[CMDLINE_MAX];
         if(sscanf(arg,"%s %[^\n]",outFile,remaining)<1){
             printf("错误，无法解析输出文件名\n");
@@ -126,6 +131,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"lzpack")==0){
+    	//打包压缩，打包后先使用LZ77再使用Huffman压缩，压缩率低，但是时间长
         char outFile[MAX_PATH],remaining[CMDLINE_MAX];
         if(sscanf(arg,"%s %[^\n]",outFile,remaining)<1){
             printf("错误，无法解析输出文件名\n");
@@ -136,6 +142,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"unpack")==0){
+    	//解开前面Huffman压缩的文件
         if(n<2)return 0;
         char path1[MAX_PATH],path2[MAX_PATH];
         int nn=sscanf(arg,"%s %s",path1,path2);
@@ -145,6 +152,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"lzunpack")==0){
+    	//解开前面LZ77+Huffman压缩的文件
         if(n<2)return 0;
         char path1[MAX_PATH],path2[MAX_PATH];
         int nn=sscanf(arg,"%s %s",path1,path2);
@@ -154,6 +162,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"lz")==0){
+    	//lz77+Huffman压缩单个文件或目录
         if(n<2)return 0;
         char path1[MAX_PATH],path2[MAX_PATH];
         int nn=sscanf(arg,"%s %s",path1,path2);
@@ -183,6 +192,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(_stricmp(cmd,"lzdecode")==0){
+    	//对应上面的压缩来解压
         if(n<2)return 0;
         char path1[MAX_PATH],path2[MAX_PATH];
         int nn=sscanf(arg,"%s %s",path1,path2);
@@ -200,6 +210,7 @@ static int processCommand(const char*cmdline,char*path){
         return 0;
     }
     if(strcmp(cmd,"?")==0){
+    	//指令大全
 		printf("cd <目录>                      切换工作目录\n");
 		printf("exit / quit                    退出程序\n");
 		printf("cls                            清空屏幕\n");
@@ -221,14 +232,14 @@ static int processCommand(const char*cmdline,char*path){
     printf("未知命令: %s\n",cmd);
     return 0;
 }
- // 主函数
-int main(int argc,char* argv[]){
+//主函数
+int main(int argc,char* argv[]){//接受命令行参数
     char path[MAX_PATH];
     if(_getcwd(path,MAX_PATH)==NULL){
         puts("获取当前目录失败");
         return-1;
     }
-    if(argc>1){
+    if(argc>1){//如果有命令行参数，则直接解析
         char cmdline[CMDLINE_MAX+100]={0};
         for(int i=1;i<argc;i++){
             strcat(cmdline,argv[i]);
@@ -237,7 +248,11 @@ int main(int argc,char* argv[]){
         processCommand(cmdline,path);
         return 0;
     }
-     // 交互模式
+    //否则进入交互模式
+    //这里其实是开始写的时候理解错了
+	//以为要做一个有类似命令行界面的程序
+	//后来写完开始写文档才注意到不是这样
+	//但是还是保留了原本的设计
     printf("输入?获取指令大全。\n");
     printf("注意是半角的?。\n");
     printf("注意输入文件名要完整，带后缀。\n");
